@@ -31,6 +31,10 @@ export default function App() {
   useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(movies)) }, [movies])
   const filteredStudents = useMemo(() => course === 'all' ? students : students.filter(student => String(student.course) === course), [course])
   const watchedCount = movies.filter(movie => movie.watched).length
+  const today = new Date()
+  const todayWeekday = new Intl.DateTimeFormat('uk-UA', { weekday: 'long' }).format(today).toLocaleUpperCase('uk-UA')
+  const todayDay = new Intl.DateTimeFormat('uk-UA', { day: 'numeric' }).format(today)
+  const todayMonth = new Intl.DateTimeFormat('uk-UA', { month: 'long' }).format(today)
 
   async function getFact() {
     setFactLoading(true); setFactError('')
@@ -39,7 +43,10 @@ export default function App() {
       if (!response.ok) throw new Error('Сервер повернув помилку.')
       const data = await response.json()
       if (!data.text) throw new Error('Факт не знайдено.')
-      setFact(data.text)
+      const translationResponse = await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=uk&dt=t&q=' + encodeURIComponent(data.text))
+      if (!translationResponse.ok) throw new Error('Translation unavailable')
+      const translation = await translationResponse.json()
+      setFact(translation[0].map(part => part[0]).join(''))
     } catch {
       setFactError('Не вдалося завантажити факт. Перевірте підключення до інтернету та спробуйте ще раз.')
     } finally { setFactLoading(false) }
@@ -57,9 +64,9 @@ export default function App() {
   return <main className="page-shell">
     <header className="topbar"><a className="brand" href="#top"><span className="brand-mark"><BookOpen size={18} /></span><span>campus<span className="brand-light">club</span></span></a><nav><a className="nav-active" href="#students">Студенти</a><a href="#movies">Мій список</a></nav><div className="topbar-right"><span className="semester"><span className="online-dot" /> Осінній семестр 2026</span><div className="user-avatar">ЯК</div></div></header>
 
-    <section className="welcome" id="top"><div className="welcome-copy"><div className="eyebrow"><Sparkles size={14} /> ВАШ СТУДЕНТСЬКИЙ ПРОСТІР</div><h1>Привіт, Ярославе<span className="wave"> ✳</span></h1><p>Трохи знань, трохи кіно і всі свої в одному місці.</p></div><div className="welcome-date"><span>СЕРЕДА</span><strong>19 <span>листопада</span></strong></div></section>
+    <section className="welcome" id="top"><div className="welcome-copy"><div className="eyebrow"><Sparkles size={14} /> ВАШ СТУДЕНТСЬКИЙ ПРОСТІР</div><h1>Привіт, Ярославе<span className="wave"> ✳</span></h1><p>Трохи знань, трохи кіно і всі свої в одному місці.</p></div><div className="welcome-date"><span>{todayWeekday}</span><strong>{todayDay} <span>{todayMonth}</span></strong></div></section>
 
-    <section className="fact-card"><div className="fact-icon"><Lightbulb size={21} /></div><div className="fact-content"><h2 className="fact-title">\u0426\u0456\u043a\u0430\u0432\u0438\u0439 \u0444\u0430\u043a\u0442 \u0434\u043d\u044f</h2><div className="fact-label">ДОЗА ЦІКАВОГО <span>·</span> ФАКТ ДНЯ</div><p className="fact-text" aria-live="polite">{factLoading ? <><LoaderCircle size={16} className="spin" /> Завантаження...</> : factError || fact}</p>{factError && <div className="fact-retry">Попередній факт: {starterFact}</div>}</div><button className="button button-dark fact-button" onClick={getFact} disabled={factLoading}>{factLoading ? 'Шукаємо…' : 'Ще факт'} <span>↗</span></button><span className="fact-decoration">✳</span></section>
+    <section className="fact-card"><div className="fact-icon"><Lightbulb size={21} /></div><div className="fact-content"><h2 className="fact-title">Цікавий факт дня</h2><div className="fact-label">ДОЗА ЦІКАВОГО <span>·</span> ФАКТ ДНЯ</div><p className="fact-text" aria-live="polite">{factLoading ? <><LoaderCircle size={16} className="spin" /> Завантаження...</> : factError || fact}</p>{factError && <div className="fact-retry">Попередній факт: {starterFact}</div>}</div><button className="button button-dark fact-button" onClick={getFact} disabled={factLoading}>{factLoading ? 'Шукаємо…' : 'Отримати факт'} <span>↗</span></button><span className="fact-decoration">✳</span></section>
 
     <section className="attendance-section"><Counter /></section>
 
